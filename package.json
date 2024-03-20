@@ -1,0 +1,22 @@
+{
+	"name": "suyu-dedicated-server",
+	"version": "1.0.0",
+	"description": "",
+	"main": "src/index.ts",
+	"scripts": {
+		"dev": "tsx watch ."
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"colorts": "^0.1.63",
+		"enet": "^0.2.9",
+		"tsx": "^4.7.1",
+		"typescript": "^5.4.2",
+		"uuid": "^9.0.1"
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.30",
+		"@types/uuid": "^9.0.8"
+	}
+}
