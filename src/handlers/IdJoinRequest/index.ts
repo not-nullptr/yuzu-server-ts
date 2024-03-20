@@ -12,7 +12,6 @@ export const IdJoinRequest: PacketHandler = (data, send, log) => {
 	offset += 4;
 	const nickname = nicknameInfo[0];
 	const ip = ipInfo[0];
-	console.log(data);
 	log(`Join request from ${nickname} (${ip}), v${version}`);
 	server.broadcastInfo();
 	send(PacketType.IdJoinSuccess);

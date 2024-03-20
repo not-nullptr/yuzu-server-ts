@@ -12,8 +12,5 @@ export const IdChatMessage: PacketHandler = (data, send, log) => {
 	const msg = stringToBuffer(message);
 	const payload = Buffer.concat([nickname, username, msg]);
 	const packet = Buffer.concat([header, payload]);
-	console.log(packet);
 	server.broadcast(packet);
-	const dMsg = message;
-	sendStatusMessage(StatusMessageTypes.IdMemberJoin, dMsg, dMsg);
 };

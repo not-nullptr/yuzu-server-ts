@@ -32,7 +32,6 @@ export function sendStatusMessage(
 	const usernameBuffer = stringToBuffer(username);
 	const payload = Buffer.concat([nicknameBuffer, usernameBuffer]);
 	const packet = Buffer.concat([data, payload]);
-	log("LOG", `Packet: ${packet.toString("hex")}`);
 	// send the packet to all clients
 	server.broadcast(packet);
 }

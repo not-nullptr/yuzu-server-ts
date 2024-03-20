@@ -119,15 +119,13 @@ export class Server {
 		let nameBuf = stringToBuffer(this.options.name);
 		let descriptionBuf = stringToBuffer(this.options.description);
 		let maxPlayersBuf = Buffer.alloc(4);
-		maxPlayersBuf.writeUInt32LE(this.options.maxPlayers, 0);
-		maxPlayersBuf = maxPlayersBuf.reverse();
+		maxPlayersBuf.writeUInt32BE(this.options.maxPlayers, 0);
 		let portBuf = Buffer.alloc(2);
-		portBuf.writeUInt16LE(41234, 0);
-		portBuf = portBuf.reverse();
+		portBuf.writeUInt16BE(this.options.port, 0);
 		const gameNameBuf = stringToBuffer(this.options.gameName);
-		const hostNameBuf = stringToBuffer(this.options.hostName, "end");
+		const hostNameBuf = stringToBuffer(this.options.hostName);
 		const memberCountBuf = Buffer.alloc(4);
-		memberCountBuf.writeUInt32LE(1, 0);
+		memberCountBuf.writeUInt32BE(this.options.members.length, 0);
 		let memberPackets: Buffer[] = [];
 		for (const member of this.options.members.map(
 			(m) =>
@@ -161,11 +159,11 @@ export class Server {
 				displayName,
 				avatarUrl,
 			] = member;
-			const nicknameBuf = stringToBuffer(nickname, "end");
+			const nicknameBuf = stringToBuffer(nickname);
 			const ipBuf = encodeIp(ip);
-			const gameNameBuf = stringToBuffer(gameName, "end");
+			const gameNameBuf = stringToBuffer(gameName);
 			let gameIdBuf = Buffer.alloc(8);
-			gameIdBuf.writeBigUInt64LE(gameId, 0);
+			gameIdBuf.writeBigUInt64BE(gameId, 0);
 			const gameVersionBuf = stringToBuffer(gameVersion);
 			const usernameBuf = stringToBuffer(username);
 			const displayNameBuf = stringToBuffer(displayName);
@@ -207,23 +205,22 @@ export let server: Server;
 
 async function main() {
 	const lServer = new Server({
-		name: "(YSM) Central EU - Italy - Milan",
-		description:
-			"Latency reduction mods and game setup: discord.gg/9nUyhHpcYc",
+		name: "Room Name",
+		description: "Room Description",
 		maxPlayers: 10,
 		port: 5000,
-		gameName: "Super Smash Bros. Ultimate",
-		hostName: "",
+		gameName: "Game Name",
+		hostName: "Host Name",
 		members: [
 			{
 				displayName: "",
-				nickname: "nullptr",
+				nickname: "nullptr-alt",
 				avatarUrl: "",
 				gameId: 0x0100152000022000n,
 				gameName: "",
 				gameVersion: "",
-				ip: "192.168.192.205",
-				username: "nullptr-alt",
+				ip: "0.0.0.0",
+				username: "",
 			},
 		],
 	});
