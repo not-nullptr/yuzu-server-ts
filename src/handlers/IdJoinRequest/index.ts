@@ -1,8 +1,8 @@
 import { server } from "../..";
 import { PacketHandler, PacketType, StatusMessageTypes } from "../../types";
-import { readIp, readString, sendStatusMessage } from "../../util";
+import { generateIp, readIp, readString, sendStatusMessage } from "../../util";
 
-export const IdJoinRequest: PacketHandler = (data, send, log) => {
+export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 	let offset = 0;
 	const nicknameInfo = readString(data, offset);
 	offset = nicknameInfo[1];
@@ -13,7 +13,17 @@ export const IdJoinRequest: PacketHandler = (data, send, log) => {
 	const nickname = nicknameInfo[0];
 	const ip = ipInfo[0];
 	log(`Join request from ${nickname} (${ip}), v${version}`);
-	server.broadcastInfo();
+	server.addMember({
+		nickname,
+		ip: generateIp(),
+		avatarUrl: "",
+		displayName: "",
+		gameId: BigInt(0),
+		gameName: "",
+		gameVersion: "",
+		username: "",
+		clientId: id,
+	});
 	send(PacketType.IdJoinSuccess);
 	sendStatusMessage(StatusMessageTypes.IdMemberJoin, nickname, nickname);
 };

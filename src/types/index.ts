@@ -1,7 +1,8 @@
 export type PacketHandler = (
 	data: Buffer,
 	send: (data: Buffer | number) => void,
-	log: (...message: any[]) => void
+	log: (...message: any[]) => void,
+	clientId: string
 ) => void;
 
 export enum PacketType {
@@ -52,4 +53,64 @@ export enum StatusMessageTypes {
 	IdMemberBanned,
 	/** A username / ip address has been unbanned from the room */
 	IdAddressUnbanned,
+}
+
+export interface SwitchGame {
+	bannerUrl: string;
+	category: string[];
+	description: string;
+	// developer: null;
+	// frontBoxArt: null;
+	iconUrl: string;
+	id: string;
+	intro: null | string;
+	isDemo: boolean;
+	// key: null;
+	languages: string[];
+	name: string;
+	nsuId: number;
+	numberOfPlayers: number;
+	publisher: string;
+	rating: number;
+	ratingContent: string[];
+	// region: null;
+	releaseDate: number;
+	rightsId: string;
+	screenshots: string[];
+	size: number;
+	// version: null;
+}
+
+export interface RoomPlayer {
+	gameId: number;
+	gameName: string;
+	nickname: string;
+}
+export interface IRoom {
+	address: string;
+	description: string;
+	externalGuid: string;
+	hasPassword: boolean;
+	id: string;
+	maxPlayers: number;
+	name: string;
+	netVersion: number;
+	owner: string;
+	players: RoomPlayer[];
+	port: number;
+	preferredGameId: number;
+	preferredGameName: string;
+	game?: SwitchGame;
+}
+
+export interface Member {
+	nickname: string;
+	ip: string;
+	gameName: string;
+	gameId: bigint;
+	gameVersion: string;
+	username: string;
+	displayName: string;
+	avatarUrl: string;
+	clientId: string;
 }

@@ -37,3 +37,11 @@ declare module "enet" {
 		cb: (err: any, host: Server) => void
 	): void;
 }
+
+declare namespace NodeJS {
+	// process.env
+	interface ProcessEnv {
+		API_URL: string;
+		API_TOKEN: string;
+	}
+}

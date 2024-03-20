@@ -1,9 +1,12 @@
 import enet from "enet";
-import { PacketHandler, PacketType, StatusMessageTypes } from "./types";
+import { Member, PacketHandler, PacketType, StatusMessageTypes } from "./types";
 import { readdirSync } from "fs";
 import "colorts/lib/string";
-import { encodeIp, log, stringToBuffer } from "./util";
+import { encodeIp, log, sendStatusMessage, stringToBuffer } from "./util";
 import { v4 } from "uuid";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 async function createServer(options: enet.ServerOpts): Promise<enet.Server> {
 	return new Promise((resolve, reject) => {
@@ -40,22 +43,20 @@ interface RoomOptions {
 	port: number;
 	gameName: string;
 	hostName: string;
-	members: {
-		nickname: string;
-		ip: string;
-		gameName: string;
-		gameId: bigint;
-		gameVersion: string;
-		username: string;
-		displayName: string;
-		avatarUrl: string;
-	}[];
+	members: Member[];
 }
 
 export class Server {
 	// @ts-expect-error
 	private server: enet.Server;
-	private clients: Record<string, enet.Peer> = {};
+	private clients: Record<
+		string,
+		{
+			peer: enet.Peer;
+			member?: Member;
+		}
+	> = {};
+	public id: string = "";
 	constructor(public options: RoomOptions) {}
 	async start() {
 		this.server = await createServer({
@@ -70,8 +71,11 @@ export class Server {
 		});
 		this.server.on("connect", (peer, data) => {
 			const id = v4();
-			this.clients[id] = peer;
-			peer.on("message", (packet, channel) => {
+			this.clients[id] = {
+				...this.clients[id],
+				peer,
+			};
+			peer.on("message", (packet) => {
 				const d = parsePacket(packet.data());
 				const handler =
 					handlers[PacketType[d.type] as keyof typeof PacketType];
@@ -94,7 +98,8 @@ export class Server {
 							);
 						},
 						(...message) =>
-							log(PacketType[d.type] as any, ...message)
+							log(PacketType[d.type] as any, ...message),
+						id
 					);
 				} catch (e) {
 					log("ERROR", `(in ${PacketType[d.type]}) ${e}`);
@@ -102,13 +107,50 @@ export class Server {
 			});
 			peer.on("disconnect", () => {
 				delete this.clients[id];
+				const member = this.options.members.find(
+					(m) => m.clientId === id
+				);
+				if (member) {
+					sendStatusMessage(
+						StatusMessageTypes.IdMemberLeave,
+						member.nickname,
+						member.username
+					);
+					this.removeMember(member);
+				}
 			});
 		});
-	}
-	broadcast(data: Buffer) {
-		for (const id in this.clients) {
-			this.clients[id].send(0, data);
+		const res = await fetch(`${process.env.API_URL}/lobby`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: process.env.API_TOKEN,
+			},
+			body: JSON.stringify({
+				...this.options,
+				members: this.options.members.map((m) => ({
+					...m,
+					gameId: m.gameId.toString(),
+				})),
+			}),
+		});
+		if (!res.ok) {
+			throw new Error("Failed to create room");
 		}
+		const body = await res.json();
+		this.id = body.id;
+	}
+	broadcast(data: Buffer, ...exclusions: string[]) {
+		for (const id in this.clients) {
+			if (exclusions.includes(id)) {
+				continue;
+			}
+			this.clients[id].peer.send(0, data);
+		}
+	}
+
+	getClientById(id: string) {
+		return this.clients[id];
 	}
 
 	getRoomInfoPacket(): Buffer {
@@ -199,6 +241,19 @@ export class Server {
 		const packet = this.getRoomInfoPacket();
 		this.broadcast(packet);
 	}
+
+	addMember(member: Member) {
+		this.options.members.push(member);
+		this.clients[member.clientId].member = member;
+		this.broadcastInfo();
+	}
+
+	removeMember(member: Member) {
+		this.options.members = this.options.members.filter(
+			(m) => m.nickname !== member.nickname
+		);
+		this.broadcastInfo();
+	}
 }
 
 export let server: Server;
@@ -209,20 +264,9 @@ async function main() {
 		description: "Room Description",
 		maxPlayers: 10,
 		port: 5000,
-		gameName: "Game Name",
-		hostName: "Host Name",
-		members: [
-			{
-				displayName: "",
-				nickname: "nullptr-alt",
-				avatarUrl: "",
-				gameId: 0x0100152000022000n,
-				gameName: "",
-				gameVersion: "",
-				ip: "0.0.0.0",
-				username: "",
-			},
-		],
+		gameName: "Mario Kart 8 Deluxe",
+		hostName: "",
+		members: [],
 	});
 	await lServer.start();
 	server = lServer;

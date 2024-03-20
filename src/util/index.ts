@@ -81,3 +81,10 @@ export function readIp(buffer: Buffer, offset: number): [string, number] {
 	const ip = buffer.subarray(offset, offset + 4).join(".");
 	return [ip, offset + 4];
 }
+
+export function generateIp(): string {
+	// 192.168.[0-255].[0-255]
+	return `192.168.${Math.floor(Math.random() * 256)}.${Math.floor(
+		Math.random() * 256
+	)}`;
+}

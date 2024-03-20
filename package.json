@@ -10,6 +10,7 @@
 	"license": "ISC",
 	"dependencies": {
 		"colorts": "^0.1.63",
+		"dotenv": "^16.4.5",
 		"enet": "^0.2.9",
 		"tsx": "^4.7.1",
 		"typescript": "^5.4.2",
