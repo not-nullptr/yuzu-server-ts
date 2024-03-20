@@ -18,11 +18,16 @@ export function log(prefix: keyof typeof colorMap, ...message: any[]) {
 export function sendStatusMessage(
 	type: StatusMessageTypes,
 	nickname: string,
-	username: string
+	username: string,
+	...exclusions: string[]
 ) {
 	log(
 		"LOG",
-		`Sending status message of type ${StatusMessageTypes[type]} to all clients`
+		`Sending status message of type ${
+			StatusMessageTypes[type]
+		} to all clients ${
+			exclusions.length ? `except ${exclusions.join(", ")}` : ""
+		}`
 	);
 	const data = Buffer.alloc(2);
 	data.writeUInt8(PacketType.IdStatusMessage, 0);
@@ -33,7 +38,7 @@ export function sendStatusMessage(
 	const payload = Buffer.concat([nicknameBuffer, usernameBuffer]);
 	const packet = Buffer.concat([data, payload]);
 	// send the packet to all clients
-	server.broadcast(packet);
+	server.broadcast(packet, ...exclusions);
 }
 
 export function readString(buffer: Buffer, offset: number): [string, number] {

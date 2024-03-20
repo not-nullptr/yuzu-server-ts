@@ -1,6 +1,5 @@
 import { server } from "../..";
-import { PacketHandler, PacketType, StatusMessageTypes } from "../../types";
-import { sendStatusMessage } from "../../util";
+import { PacketHandler } from "../../types";
 
 export const IdSetGameInfo: PacketHandler = (data, send, log) => {
 	log("Setting game info");

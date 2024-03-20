@@ -13,6 +13,11 @@ export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 	const nickname = nicknameInfo[0];
 	const ip = ipInfo[0];
 	log(`Join request from ${nickname} (${ip}), v${version}`);
+	if (server.getMemberByNickname(nickname)) {
+		log(`Name collision for ${nickname.yellow}!`);
+		send(PacketType.IdNameCollision);
+		return;
+	}
 	server.addMember({
 		nickname,
 		ip: generateIp(),
@@ -25,5 +30,6 @@ export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 		clientId: id,
 	});
 	send(PacketType.IdJoinSuccess);
-	sendStatusMessage(StatusMessageTypes.IdMemberJoin, nickname, nickname);
+	sendStatusMessage(StatusMessageTypes.IdMemberJoin, nickname, nickname, id);
+	log(`Join succeeded for ${nickname.yellow}!`);
 };

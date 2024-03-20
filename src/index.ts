@@ -43,7 +43,6 @@ interface RoomOptions {
 	port: number;
 	gameName: string;
 	hostName: string;
-	members: Member[];
 }
 
 export class Server {
@@ -106,18 +105,17 @@ export class Server {
 				}
 			});
 			peer.on("disconnect", () => {
-				delete this.clients[id];
-				const member = this.options.members.find(
-					(m) => m.clientId === id
-				);
+				const member = this.clients[id].member;
 				if (member) {
 					sendStatusMessage(
 						StatusMessageTypes.IdMemberLeave,
 						member.nickname,
-						member.username
+						member.username,
+						id
 					);
-					this.removeMember(member);
 				}
+				delete this.clients[id];
+				this.broadcastInfo();
 			});
 		});
 		const res = await fetch(`${process.env.API_URL}/lobby`, {
@@ -128,9 +126,9 @@ export class Server {
 			},
 			body: JSON.stringify({
 				...this.options,
-				members: this.options.members.map((m) => ({
-					...m,
-					gameId: m.gameId.toString(),
+				members: Object.values(this.clients).map((c) => ({
+					...c.member,
+					gameId: c.member?.gameId.toString(),
 				})),
 			}),
 		});
@@ -167,30 +165,33 @@ export class Server {
 		const gameNameBuf = stringToBuffer(this.options.gameName);
 		const hostNameBuf = stringToBuffer(this.options.hostName);
 		const memberCountBuf = Buffer.alloc(4);
-		memberCountBuf.writeUInt32BE(this.options.members.length, 0);
+		memberCountBuf.writeUInt32BE(Object.keys(this.clients).length, 0);
 		let memberPackets: Buffer[] = [];
-		for (const member of this.options.members.map(
-			(m) =>
-				[
-					m.nickname,
-					m.ip,
-					m.gameName,
-					m.gameId,
-					m.gameVersion,
-					m.username,
-					m.displayName,
-					m.avatarUrl,
-				] as [
-					string,
-					string,
-					string,
-					bigint,
-					string,
-					string,
-					string,
-					string
-				]
-		)) {
+		for (const member of Object.values(this.clients)
+			.map((c) => c.member)
+			.filter((m) => typeof m !== "undefined")
+			.map(
+				(m) =>
+					[
+						m!.nickname,
+						m!.ip,
+						m!.gameName,
+						m!.gameId,
+						m!.gameVersion,
+						m!.username,
+						m!.displayName,
+						m!.avatarUrl,
+					] as [
+						string,
+						string,
+						string,
+						bigint,
+						string,
+						string,
+						string,
+						string
+					]
+			)) {
 			const [
 				nickname,
 				ip,
@@ -243,16 +244,14 @@ export class Server {
 	}
 
 	addMember(member: Member) {
-		this.options.members.push(member);
 		this.clients[member.clientId].member = member;
 		this.broadcastInfo();
 	}
 
-	removeMember(member: Member) {
-		this.options.members = this.options.members.filter(
-			(m) => m.nickname !== member.nickname
-		);
-		this.broadcastInfo();
+	getMemberByNickname(nickname: string) {
+		return Object.values(this.clients)
+			.map((c) => c.member)
+			.find((m) => m?.nickname === nickname);
 	}
 }
 
@@ -266,7 +265,6 @@ async function main() {
 		port: 5000,
 		gameName: "Mario Kart 8 Deluxe",
 		hostName: "",
-		members: [],
 	});
 	await lServer.start();
 	server = lServer;
