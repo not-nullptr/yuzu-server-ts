@@ -1,8 +1,11 @@
+import { createIp } from "../util";
+
 export type PacketHandler = (
 	data: Buffer,
 	send: (data: Buffer | number) => void,
 	log: (...message: any[]) => void,
-	clientId: string
+	clientId: string,
+	rawData: Buffer
 ) => void;
 
 export enum PacketType {
@@ -22,7 +25,7 @@ export enum PacketType {
 	IdStatusMessage,
 	IdHostKicked,
 	IdHostBanned,
-	/// Moderation requests
+	// Moderation requests
 	IdModKick,
 	IdModBan,
 	IdModUnban,
@@ -114,3 +117,5 @@ export interface Member {
 	avatarUrl: string;
 	clientId: string;
 }
+
+export const NO_PREFERRED_IP = createIp("255.255.255.255");

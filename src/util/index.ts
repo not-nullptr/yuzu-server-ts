@@ -1,4 +1,4 @@
-import { Server, server } from "..";
+import { START_DATE, Server, server } from "..";
 import { PacketType, StatusMessageTypes } from "../types";
 
 const colorMap = {
@@ -10,7 +10,11 @@ const colorMap = {
 
 export function log(prefix: keyof typeof colorMap, ...message: any[]) {
 	console.log(
-		`${"[".gray}${prefix[(colorMap[prefix] || "green") as any]}${"]".gray}`,
+		`${"[".gray} ${
+			((performance.now() - START_DATE) / 1000).toFixed(6).gray
+		}${"]".gray} ${"<".gray}${
+			prefix[(colorMap[prefix] || "green") as any]
+		}${">".gray}`,
 		...message
 	);
 }
@@ -19,6 +23,7 @@ export function sendStatusMessage(
 	type: StatusMessageTypes,
 	nickname: string,
 	username: string,
+	ip: Buffer,
 	...exclusions: string[]
 ) {
 	log(
@@ -35,7 +40,7 @@ export function sendStatusMessage(
 	// write the nickname, username, and ip address
 	const nicknameBuffer = stringToBuffer(nickname);
 	const usernameBuffer = stringToBuffer(username);
-	const payload = Buffer.concat([nicknameBuffer, usernameBuffer]);
+	const payload = Buffer.concat([nicknameBuffer, usernameBuffer, ip]);
 	const packet = Buffer.concat([data, payload]);
 	// send the packet to all clients
 	server.broadcast(packet, ...exclusions);
@@ -83,8 +88,14 @@ export function encodeIp(ip: string): Buffer {
 }
 
 export function readIp(buffer: Buffer, offset: number): [string, number] {
-	const ip = buffer.subarray(offset, offset + 4).join(".");
-	return [ip, offset + 4];
+	const ipRange = buffer.subarray(offset, offset + 4);
+	const nums = ipRange.map((hex) => parseInt(hex.toString(16), 16));
+	return [nums.join("."), offset + 4];
+}
+
+export function createIp(ip: string): Buffer {
+	const parts = ip.split(".").map((part) => parseInt(part));
+	return Buffer.from(parts);
 }
 
 export function generateIp(): string {

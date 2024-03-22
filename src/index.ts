@@ -2,11 +2,19 @@ import enet from "enet";
 import { Member, PacketHandler, PacketType, StatusMessageTypes } from "./types";
 import { readdirSync } from "fs";
 import "colorts/lib/string";
-import { encodeIp, log, sendStatusMessage, stringToBuffer } from "./util";
+import {
+	createIp,
+	encodeIp,
+	log,
+	sendStatusMessage,
+	stringToBuffer,
+} from "./util";
 import { v4 } from "uuid";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+export const START_DATE = performance.now();
 
 async function createServer(options: enet.ServerOpts): Promise<enet.Server> {
 	return new Promise((resolve, reject) => {
@@ -98,7 +106,8 @@ export class Server {
 						},
 						(...message) =>
 							log(PacketType[d.type] as any, ...message),
-						id
+						id,
+						packet.data()
 					);
 				} catch (e) {
 					log("ERROR", `(in ${PacketType[d.type]}) ${e}`);
@@ -111,6 +120,7 @@ export class Server {
 						StatusMessageTypes.IdMemberLeave,
 						member.nickname,
 						member.username,
+						createIp(member.ip),
 						id
 					);
 				}
@@ -276,7 +286,7 @@ async function main() {
 		name: "Room Name",
 		description: "Room Description",
 		maxPlayers: 10,
-		port: 5000,
+		port: 24872,
 		gameName: "Mario Kart 8 Deluxe",
 		hostName: "",
 	});

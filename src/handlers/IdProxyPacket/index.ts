@@ -3,7 +3,13 @@ import { PacketHandler } from "../../types";
 import { readString } from "../../util";
 import * as util from "../../util";
 
-export const IdProxyPacket: PacketHandler = (data, send, log, clientId) => {
+export const IdProxyPacket: PacketHandler = (
+	data,
+	send,
+	log,
+	clientId,
+	rawData
+) => {
 	let offset = 0;
 	offset += 1; // domain?
 	offset += 4; // ip
@@ -20,13 +26,13 @@ export const IdProxyPacket: PacketHandler = (data, send, log, clientId) => {
 	offset = broadcastOffset;
 	log(`IP: ${remoteIp}, Broadcast: ${broadcast}`);
 	if (broadcast) {
-		server.broadcast(data, clientId);
+		server.broadcast(rawData);
 	} else {
 		const client = server.getClientByIP(remoteIp);
 		if (!client) {
 			util.log("ERROR", "Client not found (IdProxyPacket)");
 			return;
 		}
-		client.peer.send(0, data);
+		client.peer.send(0, rawData);
 	}
 };

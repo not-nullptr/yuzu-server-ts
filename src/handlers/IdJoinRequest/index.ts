@@ -1,6 +1,12 @@
 import { server } from "../..";
 import { PacketHandler, PacketType, StatusMessageTypes } from "../../types";
-import { generateIp, readIp, readString, sendStatusMessage } from "../../util";
+import {
+	createIp,
+	generateIp,
+	readIp,
+	readString,
+	sendStatusMessage,
+} from "../../util";
 
 export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 	let offset = 0;
@@ -11,7 +17,7 @@ export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 	const version = data.readUInt32BE(offset);
 	offset += 4;
 	const nickname = nicknameInfo[0];
-	const ip = ipInfo[0];
+	const ip = ipInfo[0] === "255.255.255.255" ? generateIp() : ipInfo[0];
 	log(`Join request from ${nickname} (${ip}), v${version}`);
 	if (server.getMemberByNickname(nickname)) {
 		log(`Name collision for ${nickname.yellow}!`);
@@ -20,7 +26,7 @@ export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 	}
 	server.addMember({
 		nickname,
-		ip: generateIp(),
+		ip,
 		avatarUrl: "",
 		displayName: "",
 		gameId: BigInt(0),
@@ -29,7 +35,18 @@ export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 		username: "",
 		clientId: id,
 	});
-	send(PacketType.IdJoinSuccess);
-	sendStatusMessage(StatusMessageTypes.IdMemberJoin, nickname, nickname, id);
+	const header = Buffer.alloc(1);
+	header.writeUInt8(PacketType.IdJoinSuccess, 0);
+	// write the IP
+	const ipBuf = createIp(ip);
+	const packet = Buffer.concat([header, ipBuf]);
+	send(packet);
+	sendStatusMessage(
+		StatusMessageTypes.IdMemberJoin,
+		nickname,
+		nickname,
+		ipBuf,
+		id
+	);
 	log(`Join succeeded for ${nickname.yellow}!`);
 };
