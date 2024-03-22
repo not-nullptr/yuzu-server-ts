@@ -93,3 +93,8 @@ export function generateIp(): string {
 		Math.random() * 256
 	)}`;
 }
+
+export function readBool(buffer: Buffer, offset: number): [boolean, number] {
+	const bool = buffer.at(offset) !== 0x00;
+	return [bool, offset + 1];
+}

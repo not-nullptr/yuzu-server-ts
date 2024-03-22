@@ -118,25 +118,29 @@ export class Server {
 				this.broadcastInfo();
 			});
 		});
-		const res = await fetch(`${process.env.API_URL}/lobby`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: process.env.API_TOKEN,
-			},
-			body: JSON.stringify({
-				...this.options,
-				members: Object.values(this.clients).map((c) => ({
-					...c.member,
-					gameId: c.member?.gameId.toString(),
-				})),
-			}),
-		});
-		if (!res.ok) {
-			throw new Error("Failed to create room");
+		try {
+			const res = await fetch(`${process.env.API_URL}/lobby`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: process.env.API_TOKEN,
+				},
+				body: JSON.stringify({
+					...this.options,
+					members: Object.values(this.clients).map((c) => ({
+						...c.member,
+						gameId: c.member?.gameId.toString(),
+					})),
+				}),
+			});
+			if (!res.ok) {
+				throw new Error("Failed to create room");
+			}
+			const body = await res.json();
+			this.id = body.id;
+		} catch {
+			log("ERROR", "Failed to create room publicly, listing as private!");
 		}
-		const body = await res.json();
-		this.id = body.id;
 	}
 	broadcast(data: Buffer, ...exclusions: string[]) {
 		for (const id in this.clients) {
@@ -252,6 +256,16 @@ export class Server {
 		return Object.values(this.clients)
 			.map((c) => c.member)
 			.find((m) => m?.nickname === nickname);
+	}
+
+	getMemberByIP(ip: string) {
+		return Object.values(this.clients)
+			.map((c) => c.member)
+			.find((m) => m?.ip === ip);
+	}
+
+	getClientByIP(ip: string) {
+		return Object.values(this.clients).find((c) => c.member?.ip === ip);
 	}
 }
 
