@@ -5,8 +5,13 @@ const colorMap = {
 	LOG: "blue",
 	WARNING: "yellow",
 	ERROR: "red",
-	IdJoinRequest: "green",
+	SERVER: "magenta",
 };
+
+const longestLen = Object.keys(colorMap).reduce(
+	(acc, val) => (val.length > acc ? val.length : acc),
+	0
+);
 
 export function log(prefix: keyof typeof colorMap, ...message: any[]) {
 	console.log(

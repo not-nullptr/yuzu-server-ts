@@ -53,6 +53,15 @@ interface RoomOptions {
 	hostName: string;
 }
 
+function camelToSpaced(str: string) {
+	// camelCase => Camel Case, with capitalization
+	return str
+		.replace(/([A-Z])/g, " $1")
+		.replace(/^./, (s) => s.toUpperCase())
+		.replaceAll("  ", " ")
+		.trim();
+}
+
 export class Server {
 	// @ts-expect-error
 	private server: enet.Server;
@@ -149,8 +158,24 @@ export class Server {
 			const body = await res.json();
 			this.id = body.id;
 		} catch {
-			log("ERROR", "Failed to create room publicly, listing as private!");
+			log(
+				"SERVER",
+				"Failed to create room publicly, listing as private!"
+			);
 		}
+		Object.entries(this.options).forEach(([key, value]) => {
+			log(
+				"SERVER",
+				`${camelToSpaced(key || "").green}: ${
+					camelToSpaced((value || "(none)").toString()).yellow
+				}`
+			);
+		});
+
+		log(
+			"SERVER",
+			`Server started on port ${this.options.port.toString().cyan}!`
+		);
 	}
 	broadcast(data: Buffer, ...exclusions: string[]) {
 		for (const id in this.clients) {
@@ -295,3 +320,7 @@ async function main() {
 }
 
 main();
+
+(process.emit as any) = function () {
+	return false;
+};

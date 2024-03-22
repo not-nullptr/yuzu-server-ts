@@ -3,6 +3,7 @@
 		"target": "es2022",
 		"module": "commonjs",
 		"strict": true,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"noImplicitAny": false
 	}
 }
