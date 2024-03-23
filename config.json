@@ -1,7 +1,7 @@
 {
 	"greetMessage": [
-		"Welcome, @{{name}}!",
+		"Welcome, @{{name}} !",
 		"Remember to be respectful of others and have fun!"
 	],
-	"byeMessage": ["Bye, @{{name}}!", "Hope to see you again soon!"]
+	"byeMessage": ["Bye, @{{name}} !", "Hope to see you again soon!"]
 }
