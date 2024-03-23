@@ -1,7 +1,8 @@
 import path from "path";
 import { START_DATE, Server, rl, server } from "..";
-import { PacketType, StatusMessageTypes } from "../types";
+import { PacketType, Report, StatusMessageTypes } from "../types";
 import process from "process";
+import { constructMessagePacket } from "../handlers/IdChatMessage/chatUtil";
 
 const srcDir = path.resolve(__dirname, "..", "..");
 
@@ -159,3 +160,46 @@ export const COLORS = [
 	"#FF7F50",
 	"#152ccd",
 ];
+
+export function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function sendAsServer(
+	message: string | string[],
+	ignoreLog: boolean = false
+) {
+	server.setFakeMembers(["Server"]);
+	await sleep(100);
+	if (typeof message === "string")
+		server.broadcast(constructMessagePacket("Server", "Server", message));
+	else {
+		for (const msg of message) {
+			server.broadcast(constructMessagePacket("Server", "Server", msg));
+			await sleep(50);
+		}
+	}
+	const time = new Date().toLocaleTimeString("en-US", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+	const prompt = `[${time}] ${generateColorText(
+		"<Server>",
+		COLORS[
+			(Object.values(server?.getClients() || {})?.length || 0) %
+				COLORS.length
+		]
+	)}`;
+	if (!ignoreLog) {
+		if (typeof message === "string") log("no-info", `${prompt} ${message}`);
+		else {
+			for (const msg of message) {
+				log("no-info", `${prompt} ${msg}`);
+			}
+		}
+	}
+	await sleep(100);
+	server.setFakeMembers([]);
+}
+
+async function createReport(report: Report) {}

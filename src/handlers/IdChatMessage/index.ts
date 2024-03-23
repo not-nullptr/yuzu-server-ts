@@ -1,5 +1,11 @@
+import { readdirSync } from "fs";
 import { server } from "../..";
-import { PacketHandler, PacketType, StatusMessageTypes } from "../../types";
+import {
+	CommandHandler,
+	PacketHandler,
+	PacketType,
+	StatusMessageTypes,
+} from "../../types";
 import {
 	COLORS,
 	generateColorText,
@@ -8,7 +14,15 @@ import {
 	stringToBuffer,
 } from "../../util";
 import * as util from "../../util";
-import { constructMessagePacket } from "./chatUtil";
+import { constructMessagePacket, parseCommand } from "./chatUtil";
+
+export const cmdHandlers: Record<string, CommandHandler> = {};
+
+readdirSync("./src/commands").forEach((file) => {
+	const name = file.split(".")[0];
+	const command = require(`../../commands/${file}`)[name];
+	cmdHandlers[name] = command;
+});
 
 export const IdChatMessage: PacketHandler = (data, send, log, id) => {
 	const [message] = readString(data, 0);
@@ -60,4 +74,12 @@ export const IdChatMessage: PacketHandler = (data, send, log, id) => {
 		message
 	);
 	server.broadcast(packet, id);
+	const cmd = parseCommand(message);
+	if (!cmd) return;
+	const { command, args } = cmd;
+	if (!cmdHandlers[command]) {
+		log("Command not found");
+		return;
+	}
+	cmdHandlers[command].fn(args, send, id);
 };

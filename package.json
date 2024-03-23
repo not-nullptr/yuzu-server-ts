@@ -4,7 +4,7 @@
 	"description": "",
 	"main": "src/index.ts",
 	"scripts": {
-		"dev": "npx --node-options='--no-warnings' tsx watch .",
+		"dev": "npx --node-options='--no-warnings --max_old_space_size=1' tsx watch .",
 		"build": "tsc"
 	},
 	"author": "",

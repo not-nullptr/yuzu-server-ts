@@ -8,6 +8,15 @@ export type PacketHandler = (
 	rawData: Buffer
 ) => void;
 
+export type CommandHandler = {
+	fn: (
+		args: string[],
+		send: (data: Buffer | number) => void,
+		clientId: string
+	) => void;
+	signature: string;
+};
+
 export enum PacketType {
 	IdJoinRequest = 1,
 	IdJoinSuccess,
@@ -119,3 +128,19 @@ export interface Member {
 }
 
 export const NO_PREFERRED_IP = createIp("255.255.255.255");
+
+export interface Report {
+	reporterIp: string;
+	reportedIp: string;
+	reason: string;
+}
+
+export interface Ban {
+	ip: string;
+	reason: string;
+}
+
+export interface BanList {
+	bans: Ban[];
+	reports: Report[];
+}

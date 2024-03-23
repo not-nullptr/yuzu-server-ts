@@ -1,5 +1,11 @@
 import enet from "enet";
-import { Member, PacketHandler, PacketType, StatusMessageTypes } from "./types";
+import {
+	BanList,
+	Member,
+	PacketHandler,
+	PacketType,
+	StatusMessageTypes,
+} from "./types";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
 import "colorts/lib/string";
 import {
@@ -8,6 +14,7 @@ import {
 	encodeIp,
 	generateColorText,
 	log,
+	sendAsServer,
 	sendStatusMessage,
 	stringToBuffer,
 } from "./util";
@@ -34,6 +41,9 @@ let config: RoomOptions = {
 };
 
 export let rl: readline.Interface;
+export let banlist: BanList = JSON.parse(
+	readFileSync("./banlist.json", "utf-8")
+);
 
 const args = parse<
 	RoomOptions & {
@@ -108,6 +118,11 @@ config = {
 	...args,
 };
 
+// @ts-expect-error
+delete config.help;
+// @ts-expect-error
+delete config.generateConfig;
+
 function updateRlPrompt() {
 	// hh:mm
 	const time = new Date().toLocaleTimeString("en-US", {
@@ -133,6 +148,8 @@ async function createServer(options: enet.ServerOpts): Promise<enet.Server> {
 			if (err) {
 				reject(err);
 			}
+			if (!host)
+				throw new Error("Host is undefined! (port is already in use?)");
 			host.start(50);
 			resolve(host);
 		});
@@ -277,6 +294,7 @@ export class Server {
 			);
 		}
 		Object.entries(this.options).forEach(([key, value]) => {
+			if (key === "fakeMembers") return;
 			log(
 				"SERVER",
 				`${camelToSpaced(key || "")}: ${(value || "(none)").toString()}`
@@ -291,9 +309,6 @@ export class Server {
 			// let timeout: NodeJS.Timeout;
 			// let joined = false;
 			// perpetually, asynchronously read line
-			async function sleep(ms: number) {
-				return new Promise((resolve) => setTimeout(resolve, ms));
-			}
 			rl = readline.createInterface({
 				input: process.stdin,
 				output: process.stdout,
@@ -306,14 +321,7 @@ export class Server {
 				rl.prompt();
 				rl?.write(null, { ctrl: true, name: "e" });
 				// if (!joined) {
-				server.setFakeMembers(["Server"]);
-				await sleep(100);
-				// }
-				server.broadcast(
-					constructMessagePacket("Server", "Server", line)
-				);
-				await sleep(100);
-				server.setFakeMembers([]);
+				await sendAsServer(line, true);
 				// joined = true;
 
 				// clearTimeout(timeout);

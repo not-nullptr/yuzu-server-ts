@@ -20,11 +20,17 @@ declare module "enet" {
 		down: number;
 	}
 
+	interface Addr {
+		address: string;
+		port: number;
+	}
+
 	class Peer {
 		on(event: "message", cb: Callback<GenericEvent>): void;
 		on(event: "disconnect", cb: Callback<GenericEvent>): void;
 		disconnect(data?: any): void;
 		send(channel: number, packet: Buffer): void;
+		address(): Addr;
 	}
 
 	class Server {
