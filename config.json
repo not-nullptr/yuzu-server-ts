@@ -1,0 +1,10 @@
+{
+  "name": "Suyu Dedicated Server",
+  "description": "A TypeScript, custom-written dedicated UDP server for Suyu.",
+  "maxPlayers": 10,
+  "port": 24872,
+  "gameName": "",
+  "hostName": "https://github.com/not-nullptr/yuzu-server-ts",
+  "generateConfig": false,
+  "help": false
+}

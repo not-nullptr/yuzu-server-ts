@@ -4,6 +4,8 @@
 		"module": "commonjs",
 		"strict": true,
 		"esModuleInterop": true,
-		"noImplicitAny": false
+		"noImplicitAny": false,
+		"outDir": "./dist",
+		"skipLibCheck": true
 	}
 }

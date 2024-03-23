@@ -1,20 +1,131 @@
 import enet from "enet";
 import { Member, PacketHandler, PacketType, StatusMessageTypes } from "./types";
-import { readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
 import "colorts/lib/string";
 import {
+	COLORS,
 	createIp,
 	encodeIp,
+	generateColorText,
 	log,
 	sendStatusMessage,
 	stringToBuffer,
 } from "./util";
 import { v4 } from "uuid";
 import dotenv from "dotenv";
+import { parse } from "ts-command-line-args";
+import readline from "readline";
+import { constructMessagePacket } from "./handlers/IdChatMessage/chatUtil";
 
 dotenv.config();
 
+console.clear();
+
 export const START_DATE = performance.now();
+
+let config: RoomOptions = {
+	name: "Suyu Dedicated Server",
+	description: "A TypeScript, custom-written dedicated UDP server for Suyu.",
+	maxPlayers: 10,
+	port: 24872,
+	gameName: "",
+	hostName: "https://github.com/not-nullptr/yuzu-server-ts",
+	fakeMembers: [],
+};
+
+export let rl: readline.Interface;
+
+const args = parse<
+	RoomOptions & {
+		generateConfig: boolean;
+		help: boolean;
+	}
+>({
+	name: {
+		type: String,
+		defaultValue: config.name,
+		description: "The name of the server",
+	},
+	description: {
+		type: String,
+		defaultValue: config.description,
+		description: "The description of the server",
+	},
+	maxPlayers: {
+		type: Number,
+		defaultValue: config.maxPlayers,
+		description: "The maximum number of players",
+	},
+	port: {
+		type: Number,
+		defaultValue: config.port,
+		description: "The port to run the server on",
+	},
+	gameName: {
+		type: String,
+		defaultValue: config.gameName,
+		description: "The name of the game",
+	},
+	hostName: {
+		type: String,
+		defaultValue: config.hostName,
+		description: "The name of the person/user hosting the server",
+	},
+	generateConfig: {
+		type: Boolean,
+		description: "Generate a config file",
+	},
+	help: {
+		type: Boolean,
+		alias: "h",
+		description: "Show this help message",
+	},
+} as any);
+
+if (args.help) {
+	Object.entries(args).forEach(([key, value]) => {
+		if (key === "help") {
+			return;
+		}
+		log(
+			"INFO",
+			`--${key}: ${typeof value} (default: ${value.toString() || "none"})`
+		);
+	});
+	process.exit(0);
+}
+
+// read if it exists
+const jsonConfig = JSON.parse(
+	existsSync("./config.json")
+		? readFileSync("./config.json").toString()
+		: "{}"
+);
+
+config = {
+	...config,
+	...jsonConfig,
+	...args,
+};
+
+function updateRlPrompt() {
+	// hh:mm
+	const time = new Date().toLocaleTimeString("en-US", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+	const prompt = `[${time}] ${generateColorText(
+		"<Server> ",
+		COLORS[
+			(Object.values(server?.getClients() || {})?.length || 0) %
+				COLORS.length
+		]
+	)}`;
+	rl?.setPrompt(prompt);
+	// send cursor to end
+	rl?.write(null, { ctrl: true, name: "e" });
+	return prompt;
+}
 
 async function createServer(options: enet.ServerOpts): Promise<enet.Server> {
 	return new Promise((resolve, reject) => {
@@ -37,13 +148,6 @@ function parsePacket(data: Buffer): { type: PacketType; payload: Buffer } {
 // @ts-expect-error
 const handlers: Record<keyof typeof PacketType, PacketHandler> = {};
 
-readdirSync("./src/handlers").forEach((file) => {
-	const handler = require(`./handlers/${file}`);
-	const type = file.replace(".ts", "") as keyof typeof PacketType;
-	handlers[type] = handler[type];
-	log("LOG", `Loaded handler for packet type ${type}`);
-});
-
 interface RoomOptions {
 	name: string;
 	description: string;
@@ -51,6 +155,7 @@ interface RoomOptions {
 	port: number;
 	gameName: string;
 	hostName: string;
+	fakeMembers?: string[];
 }
 
 function camelToSpaced(str: string) {
@@ -98,7 +203,9 @@ export class Server {
 				if (!handler) {
 					log(
 						"WARNING",
-						`No handler for packet type ${PacketType[d.type]}`
+						`No handler for packet type ${
+							PacketType[d.type].bgGreen
+						}`
 					);
 					return;
 				}
@@ -113,8 +220,7 @@ export class Server {
 									: data
 							);
 						},
-						(...message) =>
-							log(PacketType[d.type] as any, ...message),
+						(...message) => log(PacketType[d.type], ...message),
 						id,
 						packet.data()
 					);
@@ -131,6 +237,13 @@ export class Server {
 						member.username,
 						createIp(member.ip),
 						id
+					);
+					log(
+						"no-info",
+						generateColorText(
+							`* ${member.nickname} has left`,
+							"#ff8c00"
+						)
 					);
 				}
 				delete this.clients[id];
@@ -166,16 +279,50 @@ export class Server {
 		Object.entries(this.options).forEach(([key, value]) => {
 			log(
 				"SERVER",
-				`${camelToSpaced(key || "").green}: ${
-					camelToSpaced((value || "(none)").toString()).yellow
-				}`
+				`${camelToSpaced(key || "")}: ${(value || "(none)").toString()}`
 			);
 		});
 
 		log(
 			"SERVER",
-			`Server started on port ${this.options.port.toString().cyan}!`
+			`Server started on port ${this.options.port.toString()}!`
 		);
+		if (process.env.COOL_LOGGING_ONLY === "true") {
+			// let timeout: NodeJS.Timeout;
+			// let joined = false;
+			// perpetually, asynchronously read line
+			async function sleep(ms: number) {
+				return new Promise((resolve) => setTimeout(resolve, ms));
+			}
+			rl = readline.createInterface({
+				input: process.stdin,
+				output: process.stdout,
+				prompt: updateRlPrompt(),
+			});
+			rl.prompt();
+			rl?.write(null, { ctrl: true, name: "e" });
+			rl.on("line", async (line) => {
+				updateRlPrompt();
+				rl.prompt();
+				rl?.write(null, { ctrl: true, name: "e" });
+				// if (!joined) {
+				server.setFakeMembers(["Server"]);
+				await sleep(100);
+				// }
+				server.broadcast(
+					constructMessagePacket("Server", "Server", line)
+				);
+				await sleep(100);
+				server.setFakeMembers([]);
+				// joined = true;
+
+				// clearTimeout(timeout);
+				// timeout = setTimeout(() => {
+				// 	joined = false;
+				// 	server.setFakeMembers([]);
+				// }, 5000);
+			});
+		}
 	}
 	broadcast(data: Buffer, ...exclusions: string[]) {
 		for (const id in this.clients) {
@@ -193,8 +340,6 @@ export class Server {
 	getRoomInfoPacket(): Buffer {
 		const typeBuf = Buffer.alloc(1);
 		typeBuf.writeUInt8(PacketType.IdRoomInformation, 0);
-		// const nameBuf = Buffer.from("Test Room");
-		// const descriptionBuf = Buffer.from("This is a test room");
 		let nameBuf = stringToBuffer(this.options.name);
 		let descriptionBuf = stringToBuffer(this.options.description);
 		let maxPlayersBuf = Buffer.alloc(4);
@@ -204,11 +349,29 @@ export class Server {
 		const gameNameBuf = stringToBuffer(this.options.gameName);
 		const hostNameBuf = stringToBuffer(this.options.hostName);
 		const memberCountBuf = Buffer.alloc(4);
-		memberCountBuf.writeUInt32BE(Object.keys(this.clients).length, 0);
+		memberCountBuf.writeUInt32BE(
+			Object.keys(this.clients).length +
+				(this.options.fakeMembers?.length || 0),
+			0
+		);
 		let memberPackets: Buffer[] = [];
 		for (const member of Object.values(this.clients)
 			.map((c) => c.member)
 			.filter((m) => typeof m !== "undefined")
+			.concat(
+				this.options.fakeMembers?.map((m) => ({
+					nickname: m,
+					ip: "0.0.0.0",
+					gameId: BigInt(0),
+					gameName: "Playing with the server",
+					gameVersion:
+						"https://github.com/not-nullptr/yuzu-server-ts",
+					username: m,
+					displayName: m,
+					avatarUrl: "",
+					clientId: v4(),
+				}))
+			)
 			.map(
 				(m) =>
 					[
@@ -279,7 +442,24 @@ export class Server {
 
 	broadcastInfo() {
 		const packet = this.getRoomInfoPacket();
+		updateRlPrompt();
+		rl?.prompt();
+		rl?.write(null, { ctrl: true, name: "e" });
+
 		this.broadcast(packet);
+	}
+
+	setFakeMembers(members: string[]) {
+		this.options.fakeMembers = members;
+		// members.forEach((m) => {
+		// 	sendStatusMessage(
+		// 		StatusMessageTypes.IdMemberJoin,
+		// 		m,
+		// 		m,
+		// 		createIp("0.0.0.0")
+		// 	);
+		// });
+		this.broadcastInfo();
 	}
 
 	addMember(member: Member) {
@@ -299,6 +479,10 @@ export class Server {
 			.find((m) => m?.ip === ip);
 	}
 
+	getClients() {
+		return this.clients;
+	}
+
 	getClientByIP(ip: string) {
 		return Object.values(this.clients).find((c) => c.member?.ip === ip);
 	}
@@ -307,13 +491,65 @@ export class Server {
 export let server: Server;
 
 async function main() {
-	const lServer = new Server({
-		name: "Room Name",
-		description: "Room Description",
-		maxPlayers: 10,
-		port: 24872,
-		gameName: "Mario Kart 8 Deluxe",
-		hostName: "",
+	log(
+		"INFO",
+
+		"yuzu-server-ts - An open-source, easier-to-understand yuzu-room implementation"
+	);
+	if (args.generateConfig) {
+		const rl = readline.createInterface({
+			input: process.stdin,
+			output: process.stdout,
+		});
+		// get a name, description, max players, port, game name, and host name
+		const name = await new Promise<string>((resolve) => {
+			rl.question("What is the name of the server? ", (answer) => {
+				resolve(answer);
+			});
+		});
+		const description = await new Promise<string>((resolve) => {
+			rl.question("What is the description of the server? ", (answer) => {
+				resolve(answer);
+			});
+		});
+		const maxPlayers = await new Promise<number>((resolve) => {
+			rl.question("What is the maximum number of players? ", (answer) => {
+				resolve(parseInt(answer));
+			});
+		});
+		const port = await new Promise<number>((resolve) => {
+			rl.question("What port should the server run on? ", (answer) => {
+				resolve(parseInt(answer));
+			});
+		});
+		const gameName = await new Promise<string>((resolve) => {
+			rl.question("What is the name of the game? ", (answer) => {
+				resolve(answer);
+			});
+		});
+		const hostName = await new Promise<string>((resolve) => {
+			rl.question("Who is hosting the server? ", (answer) => {
+				resolve(answer);
+			});
+		});
+		rl.close();
+		config = {
+			name,
+			description,
+			maxPlayers,
+			port,
+			gameName,
+			hostName,
+			fakeMembers: [],
+		};
+		writeFileSync("./config.json", JSON.stringify(config, null, 2));
+	}
+	const lServer = new Server(config);
+	readdirSync("./src/handlers").forEach((file) => {
+		const handler = require(`./handlers/${file}`);
+		const type = file.replace(".ts", "") as keyof typeof PacketType;
+		handlers[type] = handler[type];
+		log("LOG", `Loaded handler for packet type ${type}`);
 	});
 	await lServer.start();
 	server = lServer;

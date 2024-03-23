@@ -18,11 +18,9 @@ export const IdSetGameInfo: PacketHandler = (data, send, log, clientId) => {
 	const [version, versionOffset] = readString(data, offset);
 	offset = versionOffset;
 	log(
-		`User: ${client.member.nickname.magenta}, Name: ${
-			(name || "(empty string)").magenta
-		}, ID: ${id.toString().magenta}, Version: ${
-			(version || "(empty string)").magenta
-		}`
+		`User: ${client.member.nickname}, Name: ${
+			name || "(empty string)"
+		}, ID: ${id.toString()}, Version: ${version || "(empty string)"}`
 	);
 	client.member.gameName = name;
 	client.member.gameId = id;
