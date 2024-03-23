@@ -1,6 +1,7 @@
 import enet from "enet";
 import {
 	BanList,
+	JsonConfig,
 	Member,
 	PacketHandler,
 	PacketType,
@@ -106,15 +107,15 @@ if (args.help) {
 }
 
 // read if it exists
-const jsonConfig = JSON.parse(
-	existsSync("./config.json")
-		? readFileSync("./config.json").toString()
-		: "{}"
-);
+export let jsonConfig: JsonConfig = {};
+try {
+	jsonConfig = JSON.parse(readFileSync("./config.json", "utf-8"));
+} catch {
+	log("WARNING", "No config file found, using defaults");
+}
 
 config = {
 	...config,
-	...jsonConfig,
 	...args,
 };
 
@@ -248,13 +249,21 @@ export class Server {
 			peer.on("disconnect", () => {
 				const member = this.clients[id].member;
 				if (member) {
-					sendStatusMessage(
-						StatusMessageTypes.IdMemberLeave,
-						member.nickname,
-						member.username,
-						createIp(member.ip),
-						id
-					);
+					if (jsonConfig.byeMessage) {
+						sendAsServer(
+							typeof jsonConfig.byeMessage === "string"
+								? jsonConfig.byeMessage.replaceAll(
+										"{{name}}",
+										member.nickname
+								  )
+								: jsonConfig.byeMessage.map((m) =>
+										m.replaceAll(
+											"{{name}}",
+											member.nickname
+										)
+								  )
+						);
+					}
 					log(
 						"no-info",
 						generateColorText(

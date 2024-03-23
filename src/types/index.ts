@@ -144,3 +144,8 @@ export interface BanList {
 	bans: Ban[];
 	reports: Report[];
 }
+
+export interface JsonConfig {
+	greetMessage?: string | string[];
+	byeMessage?: string | string[];
+}

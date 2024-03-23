@@ -1,10 +1,12 @@
 import { server } from "../..";
 import { cmdHandlers } from "../../handlers/IdChatMessage";
 import { CommandHandler } from "../../types";
-import { log, sendAsServer } from "../../util";
+import { createReport, log, sendAsServer } from "../../util";
 
 export const report: CommandHandler = {
-	fn: (args) => {
+	fn: async (args, _, id) => {
+		const reporterPeer = server.getClientById(id)?.peer;
+		if (!reporterPeer) return;
 		// get the user and reason from the arguments
 		const [user, reason] = [args[0].trim(), args.slice(1).join(" ").trim()];
 		// if the user or reason is missing, send an error message
@@ -24,8 +26,17 @@ export const report: CommandHandler = {
 			);
 			return;
 		}
-		sendAsServer(`User "${user}" reported for: ${reason}`);
 		const addr = target.peer.address();
+		const res = await createReport({
+			reason,
+			reportedIp: addr.address,
+			reporterIp: reporterPeer.address().address,
+		});
+		if (!res) sendAsServer(`User "${user}" reported for: ${reason}`);
+		else
+			sendAsServer(
+				`You already reported user "${user}" for: ${res.reason}`
+			);
 	},
 	signature: "/report (user: string - use quotes!) (...reason: string[])",
 };

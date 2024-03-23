@@ -1,8 +1,9 @@
 import path from "path";
-import { START_DATE, Server, rl, server } from "..";
-import { PacketType, Report, StatusMessageTypes } from "../types";
+import { START_DATE, Server, banlist, rl, server } from "..";
+import { Ban, PacketType, Report, StatusMessageTypes } from "../types";
 import process from "process";
 import { constructMessagePacket } from "../handlers/IdChatMessage/chatUtil";
+import { writeFileSync } from "fs";
 
 const srcDir = path.resolve(__dirname, "..", "..");
 
@@ -202,4 +203,32 @@ export async function sendAsServer(
 	server.setFakeMembers([]);
 }
 
-async function createReport(report: Report) {}
+export async function createReport(report: Report) {
+	const ban = banlist.reports.find(
+		(r) =>
+			r.reportedIp === report.reportedIp &&
+			r.reporterIp === report.reporterIp
+	);
+	if (ban) {
+		return ban;
+	}
+	banlist.reports.push(report);
+	writeFileSync(
+		path.resolve(srcDir, "banlist.json"),
+		JSON.stringify(banlist, null, 2)
+	);
+	return null;
+}
+
+export async function createBan(ban: Ban) {
+	const foundBan = banlist.bans.find((b) => b.ip === ban.ip);
+	if (foundBan) {
+		return foundBan;
+	}
+	banlist.bans.push(ban);
+	writeFileSync(
+		path.resolve(srcDir, "banlist.json"),
+		JSON.stringify(banlist, null, 2)
+	);
+	return null;
+}

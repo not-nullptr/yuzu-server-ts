@@ -1,4 +1,4 @@
-import { server } from "../..";
+import { jsonConfig, server } from "../..";
 import { PacketHandler, PacketType, StatusMessageTypes } from "../../types";
 import {
 	createIp,
@@ -43,13 +43,22 @@ export const IdJoinRequest: PacketHandler = (data, send, log, id) => {
 	const ipBuf = createIp(ip);
 	const packet = Buffer.concat([header, ipBuf]);
 	send(packet);
-	sendStatusMessage(
-		StatusMessageTypes.IdMemberJoin,
-		nickname,
-		nickname,
-		ipBuf,
-		id
-	);
+	if (jsonConfig.greetMessage)
+		util.sendAsServer(
+			typeof jsonConfig.greetMessage === "string"
+				? jsonConfig.greetMessage.replaceAll("{{name}}", nickname)
+				: jsonConfig.greetMessage.map((msg) =>
+						msg.replaceAll("{{name}}", nickname)
+				  )
+		);
+	else
+		sendStatusMessage(
+			StatusMessageTypes.IdMemberJoin,
+			nickname,
+			nickname,
+			ipBuf,
+			id
+		);
 	log(`Join succeeded for ${nickname}!`);
 	util.log(
 		"no-info",
