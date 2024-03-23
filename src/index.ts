@@ -5,6 +5,7 @@ import {
 	Member,
 	PacketHandler,
 	PacketType,
+	RoomOptions,
 	StatusMessageTypes,
 } from "./types";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
@@ -42,9 +43,13 @@ let config: RoomOptions = {
 };
 
 export let rl: readline.Interface;
-export let banlist: BanList = JSON.parse(
-	readFileSync("./banlist.json", "utf-8")
-);
+export let banlist: BanList;
+
+try {
+	JSON.parse(readFileSync("./banlist.json", "utf-8"));
+} catch {
+	writeFileSync("./banlist.json", `{ "bans": [], "reports": [] }`);
+}
 
 const args = parse<
 	RoomOptions & {
@@ -117,6 +122,7 @@ try {
 config = {
 	...config,
 	...args,
+	...jsonConfig.opts,
 };
 
 // @ts-expect-error
@@ -165,16 +171,6 @@ function parsePacket(data: Buffer): { type: PacketType; payload: Buffer } {
 
 // @ts-expect-error
 const handlers: Record<keyof typeof PacketType, PacketHandler> = {};
-
-interface RoomOptions {
-	name: string;
-	description: string;
-	maxPlayers: number;
-	port: number;
-	gameName: string;
-	hostName: string;
-	fakeMembers?: string[];
-}
 
 function camelToSpaced(str: string) {
 	// camelCase => Camel Case, with capitalization

@@ -148,4 +148,15 @@ export interface BanList {
 export interface JsonConfig {
 	greetMessage?: string | string[];
 	byeMessage?: string | string[];
+	opts?: Partial<RoomOptions>;
+}
+
+export interface RoomOptions {
+	name: string;
+	description: string;
+	maxPlayers: number;
+	port: number;
+	gameName: string;
+	hostName: string;
+	fakeMembers?: string[];
 }
