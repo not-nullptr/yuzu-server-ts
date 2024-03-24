@@ -11,7 +11,7 @@ export const IdLdnPacket: PacketHandler = (data, send, log, id, rawData) => {
 	offset = broadcastOffset;
 	console.log(data.at(broadcastOffset - 1));
 	if (broadcast) {
-		server.broadcast(rawData);
+		server.broadcast(rawData, id);
 	} else {
 		const client = server.getClientByIP(ipv4);
 		if (!client) {
