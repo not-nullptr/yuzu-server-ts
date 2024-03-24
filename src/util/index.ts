@@ -118,7 +118,7 @@ interface Color {
 }
 
 export function readBool(buffer: Buffer, offset: number): [boolean, number] {
-	const bool = buffer.at(offset) !== 0x00;
+	const bool = buffer.at(offset) === 0xfd;
 	return [bool, offset + 1];
 }
 

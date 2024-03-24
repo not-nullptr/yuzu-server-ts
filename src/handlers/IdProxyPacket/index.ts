@@ -24,7 +24,6 @@ export const IdProxyPacket: PacketHandler = (
 
 	const [broadcast, broadcastOffset] = util.readBool(data, offset);
 	offset = broadcastOffset;
-	log(`IP: ${remoteIp}, Broadcast: ${broadcast}`);
 	if (broadcast) {
 		server.broadcast(rawData);
 	} else {

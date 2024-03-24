@@ -12,14 +12,18 @@
 	"dependencies": {
 		"caller-callsite": "^5.0.0",
 		"colorts": "^0.1.63",
+		"console-png": "^1.2.1",
 		"dotenv": "^16.4.5",
 		"enet": "^0.2.9",
+		"jsonwebtoken": "^9.0.2",
+		"terminal-image": "^2.0.0",
 		"ts-command-line-args": "^2.5.1",
 		"tsx": "^4.7.1",
 		"typescript": "^5.4.2",
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
+		"@types/jsonwebtoken": "^9.0.6",
 		"@types/node": "^20.11.30",
 		"@types/uuid": "^9.0.8"
 	}

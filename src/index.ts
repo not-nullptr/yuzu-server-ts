@@ -25,6 +25,9 @@ import dotenv from "dotenv";
 import { parse } from "ts-command-line-args";
 import readline from "readline";
 import { constructMessagePacket } from "./handlers/IdChatMessage/chatUtil";
+import consolePng from "console-png";
+
+consolePng.attachTo(console);
 
 dotenv.config();
 
@@ -37,13 +40,15 @@ let config: RoomOptions = {
 	description: "A TypeScript, custom-written dedicated UDP server for Suyu.",
 	maxPlayers: 10,
 	port: 24872,
-	gameName: "",
+	preferredGameName: "",
+	preferredGameId: 0,
 	hostName: "https://github.com/not-nullptr/yuzu-server-ts",
 	fakeMembers: [],
 };
 
 export let rl: readline.Interface;
 export let banlist: BanList;
+export let publicJwtKey: string = "FAKE_JWT_KEY";
 
 try {
 	JSON.parse(readFileSync("./banlist.json", "utf-8"));
@@ -79,7 +84,7 @@ const args = parse<
 	},
 	gameName: {
 		type: String,
-		defaultValue: config.gameName,
+		defaultValue: config.preferredGameName,
 		description: "The name of the game",
 	},
 	hostName: {
@@ -359,7 +364,7 @@ export class Server {
 		maxPlayersBuf.writeUInt32BE(this.options.maxPlayers, 0);
 		let portBuf = Buffer.alloc(2);
 		portBuf.writeUInt16BE(this.options.port, 0);
-		const gameNameBuf = stringToBuffer(this.options.gameName);
+		const gameNameBuf = stringToBuffer(this.options.preferredGameName);
 		const hostNameBuf = stringToBuffer(this.options.hostName);
 		const memberCountBuf = Buffer.alloc(4);
 		memberCountBuf.writeUInt32BE(
@@ -504,59 +509,15 @@ export class Server {
 export let server: Server;
 
 async function main() {
+	const res = await fetch(`${process.env.API_URL}/jwt/external/key.pem`);
+	if (res.ok) {
+		publicJwtKey = await res.text();
+	}
 	log(
 		"INFO",
 
 		"yuzu-server-ts - An open-source, easier-to-understand yuzu-room implementation"
 	);
-	if (args.generateConfig) {
-		const rl = readline.createInterface({
-			input: process.stdin,
-			output: process.stdout,
-		});
-		// get a name, description, max players, port, game name, and host name
-		const name = await new Promise<string>((resolve) => {
-			rl.question("What is the name of the server? ", (answer) => {
-				resolve(answer);
-			});
-		});
-		const description = await new Promise<string>((resolve) => {
-			rl.question("What is the description of the server? ", (answer) => {
-				resolve(answer);
-			});
-		});
-		const maxPlayers = await new Promise<number>((resolve) => {
-			rl.question("What is the maximum number of players? ", (answer) => {
-				resolve(parseInt(answer));
-			});
-		});
-		const port = await new Promise<number>((resolve) => {
-			rl.question("What port should the server run on? ", (answer) => {
-				resolve(parseInt(answer));
-			});
-		});
-		const gameName = await new Promise<string>((resolve) => {
-			rl.question("What is the name of the game? ", (answer) => {
-				resolve(answer);
-			});
-		});
-		const hostName = await new Promise<string>((resolve) => {
-			rl.question("Who is hosting the server? ", (answer) => {
-				resolve(answer);
-			});
-		});
-		rl.close();
-		config = {
-			name,
-			description,
-			maxPlayers,
-			port,
-			gameName,
-			hostName,
-			fakeMembers: [],
-		};
-		writeFileSync("./config.json", JSON.stringify(config, null, 2));
-	}
 	const lServer = new Server(config);
 	readdirSync("./src/handlers").forEach((file) => {
 		const handler = require(`./handlers/${file}`);

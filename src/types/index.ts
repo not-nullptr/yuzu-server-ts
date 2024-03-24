@@ -156,7 +156,8 @@ export interface RoomOptions {
 	description: string;
 	maxPlayers: number;
 	port: number;
-	gameName: string;
+	preferredGameName: string;
+	preferredGameId: number;
 	hostName: string;
 	fakeMembers?: string[];
 }
