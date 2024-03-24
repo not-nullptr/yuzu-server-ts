@@ -46,8 +46,8 @@ export const IdJoinRequest: PacketHandler = async (data, send, log, id) => {
 		const avatarBuf = await avatarRes.arrayBuffer();
 		const buffer = Buffer.from(avatarBuf);
 		const { default: terminalImage } = (await import(
-			// @ts-expect-error
 			"terminal-image"
+			// @ts-expect-error
 		)) as typeof import("terminal-image");
 		const img = await terminalImage.buffer(buffer, { width: 10 });
 		const lines = [
