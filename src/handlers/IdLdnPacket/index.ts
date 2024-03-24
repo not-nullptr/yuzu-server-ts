@@ -9,7 +9,7 @@ export const IdLdnPacket: PacketHandler = (data, send, log, id, rawData) => {
 	offset = ipv4Offset;
 	const [broadcast, broadcastOffset] = readBool(data, offset);
 	offset = broadcastOffset;
-	console.log(data.at(broadcastOffset - 1));
+	console.log(data.toString("hex"));
 	if (broadcast) {
 		server.broadcast(rawData, id);
 	} else {
