@@ -509,10 +509,12 @@ export class Server {
 export let server: Server;
 
 async function main() {
-	const res = await fetch(`${process.env.API_URL}/jwt/external/key.pem`);
-	if (res.ok) {
-		publicJwtKey = await res.text();
-	}
+	try {
+		const res = await fetch(`${process.env.API_URL}/jwt/external/key.pem`);
+		if (res.ok) {
+			publicJwtKey = await res.text();
+		}
+	} catch {}
 	log(
 		"INFO",
 
